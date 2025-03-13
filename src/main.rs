@@ -1,15 +1,18 @@
-use std::fmt::{self, Debug, Display};
+use std::fmt::{self, Debug};
+use std::io::Write;
 use std::{fs, str::FromStr};
 
 fn main() {
     let path = "/home/focus/downloads/Norsk__Pronunciation__Minimal pairs - IPA in word.txt";
     let data = fs::read_to_string(path).unwrap();
+    let header: String = data
+        .lines()
+        .take_while(|line| line.starts_with("#"))
+        .map(|line| line.to_string() + "\n")
+        .collect();
 
     let separator = find_header_entry(&data, "separator").unwrap();
     let separator = parse_separator(separator);
-    let html: bool = find_header_entry(&data, "html").unwrap();
-    let tags_column: usize = find_header_entry(&data, "tags column").unwrap();
-    // TODO: other header keys
 
     let lines = data.lines().skip_while(|line| line.starts_with("#"));
     let notes: Vec<_> = lines
@@ -18,8 +21,15 @@ fn main() {
         .map(Note::clean_all)
         .collect();
 
+    let mut new_file = fs::OpenOptions::new()
+        .append(true)
+        .create(true)
+        .open("ipa_in_word_output.txt")
+        .unwrap();
+
+    write!(new_file, "{}", header).unwrap();
     for note in notes {
-        println!("{note:#?}");
+        writeln!(new_file, "{}", note.to_line(separator)).unwrap();
     }
 }
 
@@ -121,6 +131,23 @@ impl Note {
         note.tags = field.to_string();
 
         note
+    }
+
+    fn to_line(self, separator: char) -> String {
+        vec![
+            self.word1,
+            self.audio1,
+            self.ipa1,
+            self.word2,
+            self.audio2,
+            self.ipa2,
+            self.word3,
+            self.audio3,
+            self.ipa3,
+            self.compare_word3,
+            self.tags,
+        ]
+        .join(&separator.to_string())
     }
 
     fn move_ipas_from_words(mut self) -> Self {
