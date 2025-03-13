@@ -3,13 +3,58 @@ use std::io::Write;
 use std::{fs, str::FromStr};
 
 fn main() {
+    convert_ipa_in_word();
+    convert_frontback();
+}
+
+fn convert_frontback() {
+    let path = "/home/focus/downloads/Norsk__Pronunciation__Minimal Pairs - frontback.txt";
+    let data = fs::read_to_string(path).unwrap();
+    let header = extract_header(&data);
+
+    let separator = find_header_entry(&data, "separator").unwrap();
+    let separator = parse_separator(separator);
+
+    let lines = data.lines().skip_while(|line| line.starts_with("#"));
+    let simple_notes: Vec<_> = lines
+        .map(|line| SimpleNote::from_line(line, separator))
+        .collect();
+
+    let pairs = simple_notes.chunks_exact(2);
+    assert_eq!(pairs.remainder().len(), 0, "{:?}", pairs.remainder());
+    let mut notes: Vec<_> = pairs
+        .map(|pair| Note::from_simple_notes(&pair[0], &pair[1]))
+        .collect();
+
+    for note in &mut notes {
+        if note.word1 == "støt" {
+            note.word3 = "stutt".to_owned();
+            note.audio3 = "[sound:stutt.mp3]".to_owned();
+            note.compare_word3 = "y".to_owned();
+        }
+    }
+
+    let mut new_file = fs::OpenOptions::new()
+        .append(true)
+        .create(true)
+        .open("frontback_output.txt")
+        .unwrap();
+
+    write!(
+        new_file,
+        "{}",
+        header.replace("#tags column:3", "#tags column:11")
+    )
+    .unwrap();
+    for note in notes {
+        writeln!(new_file, "{}", note.to_line(separator)).unwrap();
+    }
+}
+
+fn convert_ipa_in_word() {
     let path = "/home/focus/downloads/Norsk__Pronunciation__Minimal pairs - IPA in word.txt";
     let data = fs::read_to_string(path).unwrap();
-    let header: String = data
-        .lines()
-        .take_while(|line| line.starts_with("#"))
-        .map(|line| line.to_string() + "\n")
-        .collect();
+    let header = extract_header(&data);
 
     let separator = find_header_entry(&data, "separator").unwrap();
     let separator = parse_separator(separator);
@@ -33,6 +78,20 @@ fn main() {
     }
 }
 
+fn extract_header(data: &String) -> String {
+    data.lines()
+        .take_while(|line| line.starts_with("#"))
+        .map(|line| line.to_string() + "\n")
+        .collect()
+}
+
+#[derive(Debug, Default)]
+struct SimpleNote {
+    audio: String,
+    word: String,
+    tags: String,
+}
+
 #[derive(Default)]
 struct Note {
     word1: String,
@@ -46,6 +105,29 @@ struct Note {
     ipa3: String,
     compare_word3: String,
     tags: String,
+}
+
+impl SimpleNote {
+    fn from_line(line: &str, separator: char) -> Self {
+        let mut note = Self::default();
+        let mut fields = line.split(separator);
+
+        let Some(field) = fields.next() else {
+            return note;
+        };
+        note.audio = field.to_string();
+        let Some(field) = fields.next() else {
+            return note;
+        };
+        note.word = field.to_string();
+
+        let Some(field) = fields.next() else {
+            return note;
+        };
+        note.tags = field.to_string();
+
+        note
+    }
 }
 
 impl Debug for Note {
@@ -129,6 +211,20 @@ impl Note {
             return note;
         };
         note.tags = field.to_string();
+
+        note
+    }
+
+    fn from_simple_notes(
+        simple_note1: &SimpleNote,
+        simple_note2: &SimpleNote,
+    ) -> Self {
+        let mut note = Self::default();
+
+        note.word1 = simple_note1.word.clone();
+        note.audio1 = simple_note1.audio.clone();
+        note.word2 = simple_note2.word.clone();
+        note.audio2 = simple_note2.audio.clone();
 
         note
     }
