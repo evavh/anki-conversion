@@ -11,7 +11,11 @@ mod parse;
 mod simple_note;
 mod spelling_note;
 
-fn clean_html(word: &str) -> String {
+pub trait Note {
+    // TODO: derive remove_html, from_line and to_line
+}
+
+fn remove_html(word: &str) -> String {
     let pattern = regex::Regex::new("<.*?>").unwrap();
     pattern
         .replace_all(word, "")

@@ -15,7 +15,7 @@ fn convert_ipa_in_word() {
     let notes: Vec<_> = notes
         .into_iter()
         .map(MinimalPairNote::move_ipas_from_words)
-        .map(MinimalPairNote::clean_all)
+        .map(MinimalPairNote::remove_html)
         .collect();
 
     let new_path = "ipa_in_word_output.txt";

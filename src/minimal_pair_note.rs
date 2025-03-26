@@ -1,4 +1,4 @@
-use super::clean_html;
+use super::remove_html;
 
 use crate::parse::{FromLine, ToLine};
 use crate::simple_note::SimpleNote;
@@ -50,6 +50,7 @@ impl Debug for MinimalPairNote {
     }
 }
 
+// TODO: derive macro
 impl FromLine for MinimalPairNote {
     fn from_line(line: &str, separator: char) -> Self {
         let mut note = Self::default();
@@ -106,6 +107,8 @@ impl FromLine for MinimalPairNote {
         note
     }
 }
+
+// TODO: derive macro
 impl ToLine for MinimalPairNote {
     fn to_line(self, separator: char) -> String {
         vec![
@@ -157,13 +160,14 @@ impl MinimalPairNote {
         self
     }
 
-    pub fn clean_all(mut self) -> Self {
-        self.word1 = clean_html(&self.word1);
-        self.ipa1 = clean_html(&self.ipa1);
-        self.word2 = clean_html(&self.word2);
-        self.ipa2 = clean_html(&self.ipa2);
-        self.word3 = clean_html(&self.word3);
-        self.ipa3 = clean_html(&self.ipa3);
+    // TODO: provide in trait
+    pub fn remove_html(mut self) -> Self {
+        self.word1 = remove_html(&self.word1);
+        self.ipa1 = remove_html(&self.ipa1);
+        self.word2 = remove_html(&self.word2);
+        self.ipa2 = remove_html(&self.ipa2);
+        self.word3 = remove_html(&self.word3);
+        self.ipa3 = remove_html(&self.ipa3);
 
         self
     }
