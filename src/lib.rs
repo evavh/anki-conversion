@@ -1,12 +1,15 @@
+use std::fs;
+use std::io::Write;
+
+pub use crate::minimal_pair_note::MinimalPairNote;
+pub use crate::parse::{parse_notes, FieldInfo, ToLine};
+pub use crate::simple_note::SimpleNote;
+pub use crate::spelling_note::SpellingNote;
+
 mod minimal_pair_note;
 mod parse;
 mod simple_note;
 mod spelling_note;
-
-pub use crate::minimal_pair_note::MinimalPairNote;
-pub use crate::parse::{parse_notes, FieldInfo};
-pub use crate::simple_note::SimpleNote;
-pub use crate::spelling_note::SpellingNote;
 
 fn clean_html(word: &str) -> String {
     let pattern = regex::Regex::new("<.*?>").unwrap();
@@ -14,4 +17,18 @@ fn clean_html(word: &str) -> String {
         .replace_all(word, "")
         .replace("&nbsp;", "")
         .replace("\"", "")
+}
+
+pub fn save<T: ToLine>(notes: Vec<T>, new_path: &str, field_info: FieldInfo) {
+    let mut new_file = fs::OpenOptions::new()
+        .truncate(true)
+        .append(true)
+        .create(true)
+        .open(new_path)
+        .unwrap();
+    let FieldInfo { header, separator } = field_info;
+    write!(new_file, "{}", header).unwrap();
+    for note in notes {
+        writeln!(new_file, "{}", note.to_line(separator)).unwrap();
+    }
 }

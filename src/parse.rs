@@ -6,6 +6,10 @@ pub trait FromLine {
     fn from_line(line: &str, separator: char) -> Self;
 }
 
+pub trait ToLine {
+    fn to_line(self, separator: char) -> String;
+}
+
 pub struct FieldInfo {
     pub separator: char,
     pub header: String,

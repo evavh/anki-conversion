@@ -1,6 +1,6 @@
 use super::clean_html;
 
-use crate::parse::FromLine;
+use crate::parse::{FromLine, ToLine};
 use crate::simple_note::SimpleNote;
 
 use std::fmt;
@@ -106,23 +106,8 @@ impl FromLine for MinimalPairNote {
         note
     }
 }
-
-impl MinimalPairNote {
-    pub fn from_simple_notes(
-        simple_note1: &SimpleNote,
-        simple_note2: &SimpleNote,
-    ) -> Self {
-        let mut note = Self::default();
-
-        note.word1 = simple_note1.word.clone();
-        note.audio1 = simple_note1.audio.clone();
-        note.word2 = simple_note2.word.clone();
-        note.audio2 = simple_note2.audio.clone();
-
-        note
-    }
-
-    pub fn to_line(self, separator: char) -> String {
+impl ToLine for MinimalPairNote {
+    fn to_line(self, separator: char) -> String {
         vec![
             self.word1,
             self.audio1,
@@ -137,6 +122,22 @@ impl MinimalPairNote {
             self.tags,
         ]
         .join(&separator.to_string())
+    }
+}
+
+impl MinimalPairNote {
+    pub fn from_simple_notes(
+        simple_note1: &SimpleNote,
+        simple_note2: &SimpleNote,
+    ) -> Self {
+        let mut note = Self::default();
+
+        note.word1 = simple_note1.word.clone();
+        note.audio1 = simple_note1.audio.clone();
+        note.word2 = simple_note2.word.clone();
+        note.audio2 = simple_note2.audio.clone();
+
+        note
     }
 
     pub fn move_ipas_from_words(mut self) -> Self {
@@ -194,10 +195,7 @@ impl MinimalPairNote {
         note
     }
 
-    pub fn is_duplicate(
-        &self,
-        other: &MinimalPairNote,
-    ) -> bool {
+    pub fn is_duplicate(&self, other: &MinimalPairNote) -> bool {
         self.word1 == other.word1
             && self.word2 == other.word2
             && self.word3.is_empty()

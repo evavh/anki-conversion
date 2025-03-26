@@ -1,10 +1,6 @@
-use std::fs;
-use std::io::Write;
-
-use anki_conversion::MinimalPairNote;
-use anki_conversion::{parse_notes, FieldInfo};
-use anki_conversion::SimpleNote;
-use anki_conversion::SpellingNote;
+use anki_conversion::{
+    parse_notes, save, MinimalPairNote, SimpleNote, SpellingNote,
+};
 
 fn main() {
     convert_ipa_in_word();
@@ -22,23 +18,13 @@ fn convert_ipa_in_word() {
         .map(MinimalPairNote::clean_all)
         .collect();
 
-    let mut new_file = fs::OpenOptions::new()
-        .truncate(true)
-        .append(true)
-        .create(true)
-        .open("ipa_in_word_output.txt")
-        .unwrap();
-
-    let FieldInfo { header, separator } = field_info;
-    write!(new_file, "{}", header).unwrap();
-    for note in notes {
-        writeln!(new_file, "{}", note.to_line(separator)).unwrap();
-    }
+    let new_path = "ipa_in_word_output.txt";
+    save(notes, new_path, field_info);
 }
 
 fn convert_frontback() {
     let path = "/home/focus/downloads/Norsk__Pronunciation__Minimal Pairs - frontback.txt";
-    let (simple_notes, field_info) = parse_notes::<SimpleNote>(path);
+    let (simple_notes, mut field_info) = parse_notes::<SimpleNote>(path);
 
     let pairs = simple_notes.chunks_exact(2);
     assert_eq!(pairs.remainder().len(), 0, "{:?}", pairs.remainder());
@@ -54,23 +40,11 @@ fn convert_frontback() {
         }
     }
 
-    let mut new_file = fs::OpenOptions::new()
-        .truncate(true)
-        .append(true)
-        .create(true)
-        .open("frontback_output.txt")
-        .unwrap();
-
-    let FieldInfo { header, separator } = field_info;
-    write!(
-        new_file,
-        "{}",
-        header.replace("#tags column:3", "#tags column:11")
-    )
-    .unwrap();
-    for note in notes {
-        writeln!(new_file, "{}", note.to_line(separator)).unwrap();
-    }
+    let new_path = "frontback_output.txt";
+    field_info.header = field_info
+        .header
+        .replace("#tags column:3", "#tags column:11");
+    save(notes, new_path, field_info);
 }
 
 fn deduplicate() {
@@ -113,17 +87,8 @@ fn deduplicate() {
 
     assert_eq!(deduplicated.len(), n_total - n_duplicates);
 
-    let mut new_file = fs::OpenOptions::new()
-        .append(true)
-        .create(true)
-        .open("deduplicated.txt")
-        .unwrap();
-
-    let FieldInfo { header, separator } = field_info;
-    write!(new_file, "{}", header).unwrap();
-    for note in deduplicated {
-        writeln!(new_file, "{}", note.to_line(separator)).unwrap();
-    }
+    let new_path = "deduplicated.txt";
+    save(deduplicated, new_path, field_info);
 }
 
 fn convert_spellings() {
@@ -131,4 +96,3 @@ fn convert_spellings() {
         "/home/focus/downloads/Norsk__Pronunciation__Spellings and Sounds.txt";
     parse_notes::<SpellingNote>(path);
 }
-
