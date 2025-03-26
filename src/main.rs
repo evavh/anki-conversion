@@ -3,27 +3,52 @@ use std::io::Write;
 use std::{fs, str::FromStr};
 
 fn main() {
-    // convert_ipa_in_word();
-    // convert_frontback();
+    convert_ipa_in_word();
+    convert_frontback();
     deduplicate();
+    convert_spellings();
 }
-fn deduplicate() {
-    let path = "/home/focus/downloads/Norsk__Pronunciation__Minimal Pairs.txt";
+
+struct SpellingNote {}
+
+impl FromLine for SpellingNote {
+    fn from_line(line: &str, separator: char) -> Self {
+        todo!()
+    }
+}
+
+struct FieldInfo {
+    separator: char,
+    header: String,
+}
+
+fn convert_spellings() {
+    let path =
+        "/home/focus/downloads/Norsk__Pronunciation__Spellings and Sounds.txt";
+    parse_notes::<SpellingNote>(path);
+}
+
+fn parse_notes<T: FromLine>(path: &str) -> (Vec<T>, FieldInfo) {
     let data = fs::read_to_string(path).unwrap();
     let header = extract_header(&data);
-
     let separator = find_header_entry(&data, "separator").unwrap();
     let separator = parse_separator(separator);
-
     let mut lines: Vec<_> = data
         .lines()
         .skip_while(|line| line.starts_with("#"))
         .collect();
     lines.sort();
-    let notes: Vec<_> = lines
+    let notes = lines
         .into_iter()
-        .map(|line| Note::from_line(line, separator))
+        .map(|line| T::from_line(line, separator))
         .collect();
+
+    (notes, FieldInfo { separator, header })
+}
+
+fn deduplicate() {
+    let path = "/home/focus/downloads/Norsk__Pronunciation__Minimal Pairs.txt";
+    let (notes, field_info) = parse_notes::<MinimalPairNote>(path);
 
     let n_total = notes.len();
     let n_duplicates = notes
@@ -32,13 +57,14 @@ fn deduplicate() {
         .filter(|pair| is_duplicate(pair[0], pair[1]))
         .count();
 
-    let mut note_to_be_checked: Option<Note> = None;
+    let mut note_to_be_checked: Option<MinimalPairNote> = None;
     let mut deduplicated = Vec::new();
     for note in notes {
         assert!(note.word1 < note.word2, "{note:#?}");
         if let Some(prev_note) = note_to_be_checked {
             if is_duplicate(&note, &prev_note) {
-                let new_note = Note::merge_duplicates(prev_note.clone(), note);
+                let new_note =
+                    MinimalPairNote::merge_duplicates(prev_note.clone(), note);
                 deduplicated.push(new_note);
                 // Both notes have now been processed, so we clear this
                 note_to_be_checked = None;
@@ -66,13 +92,14 @@ fn deduplicate() {
         .open("deduplicated.txt")
         .unwrap();
 
+    let FieldInfo { header, separator } = field_info;
     write!(new_file, "{}", header).unwrap();
     for note in deduplicated {
         writeln!(new_file, "{}", note.to_line(separator)).unwrap();
     }
 }
 
-fn is_duplicate(note1: &Note, note2: &Note) -> bool {
+fn is_duplicate(note1: &MinimalPairNote, note2: &MinimalPairNote) -> bool {
     note1.word1 == note2.word1
         && note1.word2 == note2.word2
         && note1.word3.is_empty()
@@ -81,21 +108,12 @@ fn is_duplicate(note1: &Note, note2: &Note) -> bool {
 
 fn convert_frontback() {
     let path = "/home/focus/downloads/Norsk__Pronunciation__Minimal Pairs - frontback.txt";
-    let data = fs::read_to_string(path).unwrap();
-    let header = extract_header(&data);
-
-    let separator = find_header_entry(&data, "separator").unwrap();
-    let separator = parse_separator(separator);
-
-    let lines = data.lines().skip_while(|line| line.starts_with("#"));
-    let simple_notes: Vec<_> = lines
-        .map(|line| SimpleNote::from_line(line, separator))
-        .collect();
+    let (simple_notes, field_info) = parse_notes::<SimpleNote>(path);
 
     let pairs = simple_notes.chunks_exact(2);
     assert_eq!(pairs.remainder().len(), 0, "{:?}", pairs.remainder());
     let mut notes: Vec<_> = pairs
-        .map(|pair| Note::from_simple_notes(&pair[0], &pair[1]))
+        .map(|pair| MinimalPairNote::from_simple_notes(&pair[0], &pair[1]))
         .collect();
 
     for note in &mut notes {
@@ -113,6 +131,7 @@ fn convert_frontback() {
         .open("frontback_output.txt")
         .unwrap();
 
+    let FieldInfo { header, separator } = field_info;
     write!(
         new_file,
         "{}",
@@ -126,17 +145,11 @@ fn convert_frontback() {
 
 fn convert_ipa_in_word() {
     let path = "/home/focus/downloads/Norsk__Pronunciation__Minimal pairs - IPA in word.txt";
-    let data = fs::read_to_string(path).unwrap();
-    let header = extract_header(&data);
-
-    let separator = find_header_entry(&data, "separator").unwrap();
-    let separator = parse_separator(separator);
-
-    let lines = data.lines().skip_while(|line| line.starts_with("#"));
-    let notes: Vec<_> = lines
-        .map(|line| Note::from_line(line, separator))
-        .map(Note::move_ipas_from_words)
-        .map(Note::clean_all)
+    let (notes, field_info) = parse_notes::<MinimalPairNote>(path);
+    let notes: Vec<_> = notes
+        .into_iter()
+        .map(MinimalPairNote::move_ipas_from_words)
+        .map(MinimalPairNote::clean_all)
         .collect();
 
     let mut new_file = fs::OpenOptions::new()
@@ -146,6 +159,7 @@ fn convert_ipa_in_word() {
         .open("ipa_in_word_output.txt")
         .unwrap();
 
+    let FieldInfo { header, separator } = field_info;
     write!(new_file, "{}", header).unwrap();
     for note in notes {
         writeln!(new_file, "{}", note.to_line(separator)).unwrap();
@@ -167,7 +181,7 @@ struct SimpleNote {
 }
 
 #[derive(Clone, Default)]
-struct Note {
+struct MinimalPairNote {
     word1: String,
     audio1: String,
     ipa1: String,
@@ -181,7 +195,7 @@ struct Note {
     tags: String,
 }
 
-impl SimpleNote {
+impl FromLine for SimpleNote {
     fn from_line(line: &str, separator: char) -> Self {
         let mut note = Self::default();
         let mut fields = line.split(separator);
@@ -204,7 +218,7 @@ impl SimpleNote {
     }
 }
 
-impl Debug for Note {
+impl Debug for MinimalPairNote {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let mut debug = f.debug_struct("Note");
 
@@ -233,7 +247,11 @@ impl Debug for Note {
     }
 }
 
-impl Note {
+trait FromLine {
+    fn from_line(line: &str, separator: char) -> Self;
+}
+
+impl FromLine for MinimalPairNote {
     fn from_line(line: &str, separator: char) -> Self {
         let mut note = Self::default();
         let mut fields = line.split(separator);
@@ -288,7 +306,9 @@ impl Note {
 
         note
     }
+}
 
+impl MinimalPairNote {
     fn from_simple_notes(
         simple_note1: &SimpleNote,
         simple_note2: &SimpleNote,
