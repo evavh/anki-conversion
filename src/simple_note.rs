@@ -1,7 +1,7 @@
 use crate::parse::FromLine;
 
 #[derive(Debug, Default)]
-pub(crate) struct SimpleNote {
+pub struct SimpleNote {
     pub(crate) audio: String,
     pub(crate) word: String,
     pub(crate) tags: String,

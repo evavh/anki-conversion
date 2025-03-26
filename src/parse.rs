@@ -2,16 +2,16 @@ use std::fmt::Debug;
 use std::fs;
 use std::str::FromStr;
 
-pub(crate) trait FromLine {
+pub trait FromLine {
     fn from_line(line: &str, separator: char) -> Self;
 }
 
-pub(crate) struct FieldInfo {
-    pub(crate) separator: char,
-    pub(crate) header: String,
+pub struct FieldInfo {
+    pub separator: char,
+    pub header: String,
 }
 
-pub(crate) fn parse_notes<T: FromLine>(path: &str) -> (Vec<T>, FieldInfo) {
+pub fn parse_notes<T: FromLine>(path: &str) -> (Vec<T>, FieldInfo) {
     let data = fs::read_to_string(path).unwrap();
     let header = extract_header(&data);
     let separator = find_header_entry(&data, "separator").unwrap();
@@ -29,14 +29,14 @@ pub(crate) fn parse_notes<T: FromLine>(path: &str) -> (Vec<T>, FieldInfo) {
     (notes, FieldInfo { separator, header })
 }
 
-pub(crate) fn extract_header(data: &String) -> String {
+fn extract_header(data: &String) -> String {
     data.lines()
         .take_while(|line| line.starts_with("#"))
         .map(|line| line.to_string() + "\n")
         .collect()
 }
 
-pub(crate) fn find_header_entry<T: FromStr>(data: &str, key: &str) -> Option<T>
+fn find_header_entry<T: FromStr>(data: &str, key: &str) -> Option<T>
 where
     <T as FromStr>::Err: Debug,
 {
@@ -49,7 +49,7 @@ where
     )
 }
 
-pub(crate) fn parse_separator(value: String) -> char {
+fn parse_separator(value: String) -> char {
     if value.len() == 1 {
         return value.chars().next().unwrap();
     }

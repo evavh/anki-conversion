@@ -7,18 +7,18 @@ use std::fmt;
 use std::fmt::Debug;
 
 #[derive(Clone, Default)]
-pub(crate) struct MinimalPairNote {
-    pub(crate) word1: String,
-    pub(crate) audio1: String,
-    pub(crate) ipa1: String,
-    pub(crate) word2: String,
-    pub(crate) audio2: String,
-    pub(crate) ipa2: String,
-    pub(crate) word3: String,
-    pub(crate) audio3: String,
-    pub(crate) ipa3: String,
-    pub(crate) compare_word3: String,
-    pub(crate) tags: String,
+pub struct MinimalPairNote {
+    pub word1: String,
+    pub audio1: String,
+    pub ipa1: String,
+    pub word2: String,
+    pub audio2: String,
+    pub ipa2: String,
+    pub word3: String,
+    pub audio3: String,
+    pub ipa3: String,
+    pub compare_word3: String,
+    pub tags: String,
 }
 
 impl Debug for MinimalPairNote {
@@ -108,7 +108,7 @@ impl FromLine for MinimalPairNote {
 }
 
 impl MinimalPairNote {
-    pub(crate) fn from_simple_notes(
+    pub fn from_simple_notes(
         simple_note1: &SimpleNote,
         simple_note2: &SimpleNote,
     ) -> Self {
@@ -122,7 +122,7 @@ impl MinimalPairNote {
         note
     }
 
-    pub(crate) fn to_line(self, separator: char) -> String {
+    pub fn to_line(self, separator: char) -> String {
         vec![
             self.word1,
             self.audio1,
@@ -139,7 +139,7 @@ impl MinimalPairNote {
         .join(&separator.to_string())
     }
 
-    pub(crate) fn move_ipas_from_words(mut self) -> Self {
+    pub fn move_ipas_from_words(mut self) -> Self {
         if let Some((word, ipa)) = split_ipa_from_word(&self.word1) {
             self.word1 = word;
             self.ipa1 = ipa;
@@ -156,7 +156,7 @@ impl MinimalPairNote {
         self
     }
 
-    pub(crate) fn clean_all(mut self) -> Self {
+    pub fn clean_all(mut self) -> Self {
         self.word1 = clean_html(&self.word1);
         self.ipa1 = clean_html(&self.ipa1);
         self.word2 = clean_html(&self.word2);
@@ -167,7 +167,7 @@ impl MinimalPairNote {
         self
     }
 
-    pub(crate) fn merge_duplicates(note1: Self, note2: Self) -> Self {
+    pub fn merge_duplicates(note1: Self, note2: Self) -> Self {
         assert_eq!(note1.word1, note2.word1);
         assert_eq!(note1.word2, note2.word2);
         assert!(note1.word3.is_empty());
@@ -194,7 +194,7 @@ impl MinimalPairNote {
         note
     }
 
-    pub(crate) fn is_duplicate(
+    pub fn is_duplicate(
         &self,
         other: &MinimalPairNote,
     ) -> bool {
