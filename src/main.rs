@@ -3,8 +3,80 @@ use std::io::Write;
 use std::{fs, str::FromStr};
 
 fn main() {
-    convert_ipa_in_word();
-    convert_frontback();
+    // convert_ipa_in_word();
+    // convert_frontback();
+    deduplicate();
+}
+fn deduplicate() {
+    let path = "/home/focus/downloads/Norsk__Pronunciation__Minimal Pairs.txt";
+    let data = fs::read_to_string(path).unwrap();
+    let header = extract_header(&data);
+
+    let separator = find_header_entry(&data, "separator").unwrap();
+    let separator = parse_separator(separator);
+
+    let mut lines: Vec<_> = data
+        .lines()
+        .skip_while(|line| line.starts_with("#"))
+        .collect();
+    lines.sort();
+    let notes: Vec<_> = lines
+        .into_iter()
+        .map(|line| Note::from_line(line, separator))
+        .collect();
+
+    let n_total = notes.len();
+    let n_duplicates = notes
+        .windows(2)
+        .map(|pair| pair.into_iter().collect::<Vec<_>>())
+        .filter(|pair| is_duplicate(pair[0], pair[1]))
+        .count();
+
+    let mut note_to_be_checked: Option<Note> = None;
+    let mut deduplicated = Vec::new();
+    for note in notes {
+        assert!(note.word1 < note.word2, "{note:#?}");
+        if let Some(prev_note) = note_to_be_checked {
+            if is_duplicate(&note, &prev_note) {
+                let new_note = Note::merge_duplicates(prev_note.clone(), note);
+                deduplicated.push(new_note);
+                // Both notes have now been processed, so we clear this
+                note_to_be_checked = None;
+            } else {
+                // Prev note is not a duplicate, so we push it as is
+                deduplicated.push(prev_note.clone());
+                // Current note needs to be checked against the next one
+                note_to_be_checked = Some(note);
+            }
+        } else {
+            // Prev note was None, so next time we check the current note
+            note_to_be_checked = Some(note);
+        }
+    }
+    // Don't forget the last note!
+    if let Some(last_note) = note_to_be_checked {
+        deduplicated.push(last_note);
+    }
+
+    assert_eq!(deduplicated.len(), n_total - n_duplicates);
+
+    let mut new_file = fs::OpenOptions::new()
+        .append(true)
+        .create(true)
+        .open("deduplicated.txt")
+        .unwrap();
+
+    write!(new_file, "{}", header).unwrap();
+    for note in deduplicated {
+        writeln!(new_file, "{}", note.to_line(separator)).unwrap();
+    }
+}
+
+fn is_duplicate(note1: &Note, note2: &Note) -> bool {
+    note1.word1 == note2.word1
+        && note1.word2 == note2.word2
+        && note1.word3.is_empty()
+        && note2.word3.is_empty()
 }
 
 fn convert_frontback() {
@@ -35,6 +107,7 @@ fn convert_frontback() {
     }
 
     let mut new_file = fs::OpenOptions::new()
+        .truncate(true)
         .append(true)
         .create(true)
         .open("frontback_output.txt")
@@ -67,6 +140,7 @@ fn convert_ipa_in_word() {
         .collect();
 
     let mut new_file = fs::OpenOptions::new()
+        .truncate(true)
         .append(true)
         .create(true)
         .open("ipa_in_word_output.txt")
@@ -92,7 +166,7 @@ struct SimpleNote {
     tags: String,
 }
 
-#[derive(Default)]
+#[derive(Clone, Default)]
 struct Note {
     word1: String,
     audio1: String,
@@ -272,6 +346,33 @@ impl Note {
         self.ipa3 = clean_html(&self.ipa3);
 
         self
+    }
+
+    fn merge_duplicates(note1: Self, note2: Self) -> Self {
+        assert_eq!(note1.word1, note2.word1);
+        assert_eq!(note1.word2, note2.word2);
+        assert!(note1.word3.is_empty());
+        assert!(note2.word3.is_empty());
+
+        let mut note = Self::default();
+
+        note.word1 = note1.word1;
+        note.audio1 = note2.audio1 + &note1.audio1;
+        if !note1.ipa1.is_empty() {
+            note.ipa1 = note1.ipa1;
+        } else if !note2.ipa1.is_empty() {
+            note.ipa1 = note2.ipa1;
+        }
+
+        note.word2 = note1.word2;
+        note.audio2 = note2.audio2 + &note1.audio2;
+        if !note1.ipa2.is_empty() {
+            note.ipa2 = note1.ipa2;
+        } else if !note2.ipa2.is_empty() {
+            note.ipa2 = note2.ipa2;
+        }
+
+        note
     }
 }
 
