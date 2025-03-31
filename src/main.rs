@@ -1,8 +1,9 @@
+use anki_conversion::Note;
 use anki_conversion::{
     parse_notes, save, MinimalPairNote, SimpleNote, SpellingNote,
 };
-use anki_conversion::Note;
 use anki_conversion_derive::Note;
+use regex::Regex;
 
 #[derive(Note)]
 struct Test {}
@@ -99,5 +100,22 @@ fn deduplicate() {
 fn convert_spellings() {
     let path =
         "/home/focus/downloads/Norsk__Pronunciation__Spellings and Sounds.txt";
-    parse_notes::<SpellingNote>(path);
+    let (notes, field_info) = parse_notes::<SpellingNote>(path);
+    let notes: Vec<_> = notes
+        .into_iter()
+        .map(|mut note| {
+            note.audio = anki_conversion::remove_html(&note.audio);
+            note
+        })
+        .map(|mut note| {
+            let pattern = Regex::new(r#"\[*(.*?)\]*(\[.*?\])"#).unwrap();
+            let caps = pattern.captures(&note.audio).unwrap();
+            note.ipa = caps.get(1).unwrap().as_str().to_string();
+            note.audio = caps.get(2).unwrap().as_str().to_string();
+            note
+        })
+        .collect();
+
+    let new_path = "cleaned_spellings.txt";
+    save(notes, new_path, field_info);
 }

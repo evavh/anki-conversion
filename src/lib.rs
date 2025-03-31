@@ -17,7 +17,7 @@ pub trait Note {
     fn from_line(line: &str, separator: char) -> Self;
 }
 
-fn remove_html(word: &str) -> String {
+pub fn remove_html(word: &str) -> String {
     let pattern = regex::Regex::new("<.*?>").unwrap();
     pattern
         .replace_all(word, "")
@@ -27,7 +27,6 @@ fn remove_html(word: &str) -> String {
 
 pub fn save<T: ToLine>(notes: Vec<T>, new_path: &str, field_info: FieldInfo) {
     let mut new_file = fs::OpenOptions::new()
-        .truncate(true)
         .append(true)
         .create(true)
         .open(new_path)
