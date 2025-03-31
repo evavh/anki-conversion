@@ -1,6 +1,11 @@
 use anki_conversion::{
     parse_notes, save, MinimalPairNote, SimpleNote, SpellingNote,
 };
+use anki_conversion::Note;
+use anki_conversion_derive::Note;
+
+#[derive(Note)]
+struct Test {}
 
 fn main() {
     convert_ipa_in_word();

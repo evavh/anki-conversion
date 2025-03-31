@@ -12,7 +12,9 @@ mod simple_note;
 mod spelling_note;
 
 pub trait Note {
-    // TODO: derive remove_html, from_line and to_line
+    fn remove_html(self) -> Self;
+    fn to_line(self, separator: char) -> String;
+    fn from_line(line: &str, separator: char) -> Self;
 }
 
 fn remove_html(word: &str) -> String {

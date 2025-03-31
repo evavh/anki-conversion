@@ -29,4 +29,3 @@ impl FromLine for SimpleNote {
         note
     }
 }
-

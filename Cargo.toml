@@ -6,3 +6,4 @@ edition = "2021"
 [dependencies]
 genanki-rs = "0.4.0"
 regex = "1.11.1"
+anki-conversion-derive = { path = "derive" }

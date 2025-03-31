@@ -1,6 +1,5 @@
-use super::remove_html;
-
 use crate::parse::{FromLine, ToLine};
+use crate::remove_html;
 use crate::simple_note::SimpleNote;
 
 use std::fmt;
