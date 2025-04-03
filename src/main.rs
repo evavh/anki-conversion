@@ -6,7 +6,8 @@ use anki_conversion_derive::Note;
 use regex::Regex;
 
 #[derive(Note)]
-struct Test {}
+struct Test (String);
+
 
 fn main() {
     convert_ipa_in_word();

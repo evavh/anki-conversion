@@ -1,13 +1,18 @@
-use proc_macro::TokenStream;
+use proc_macro2::{Literal, Span};
 use quote::quote;
-use syn::{Data, Fields, Type};
+use syn::{Data, Fields, Ident, LitStr, Type};
+
+#[cfg(test)]
+mod test;
 
 #[proc_macro_derive(Note)]
-pub fn derive_note_fns(input: TokenStream) -> TokenStream {
+pub fn derive_note_fns(
+    input: proc_macro::TokenStream,
+) -> proc_macro::TokenStream {
     // TODO: derive remove_html, from_line and to_line
     let ast = syn::parse(input).unwrap();
 
-    impl_note_macro(ast)
+    impl_note_macro(ast).into()
 }
 
 fn type_is_string(ty: &Type) -> bool {
@@ -20,7 +25,7 @@ fn type_is_string(ty: &Type) -> bool {
     path_term.ident.to_string() == "String"
 }
 
-fn impl_note_macro(ast: syn::DeriveInput) -> TokenStream {
+fn impl_note_macro(ast: syn::DeriveInput) -> proc_macro2::TokenStream {
     let name = &ast.ident;
     let Data::Struct(struct_data) = ast.data else {
         panic!("Cannot derive Note trait on an enum or union")
@@ -28,6 +33,10 @@ fn impl_note_macro(ast: syn::DeriveInput) -> TokenStream {
     let field_idents: Vec<_> = match struct_data.fields {
         Fields::Named(named_fields) => {
             let fields = named_fields.named;
+            assert!(
+                !fields.is_empty(),
+                "Cannot derive Note trait on an empty struct"
+            );
             fields
                 .into_iter()
                 .inspect(|f| {
@@ -37,35 +46,52 @@ fn impl_note_macro(ast: syn::DeriveInput) -> TokenStream {
                     )
                 })
                 .map(|f| {
-                    f.ident
-                        .expect("Field of a named struct should have a name")
-                        .to_string()
+                    f.ident.expect("Field of a named struct should have a name")
                 })
                 .collect()
         }
         Fields::Unnamed(unnamed_fields) => {
             let n_fields = unnamed_fields.unnamed.len();
-            (0..n_fields).into_iter().map(|n| n.to_string()).collect()
+            dbg!(n_fields);
+            (0..n_fields)
+                .into_iter()
+                .map(|n| Ident::new(&n.to_string(), Span::call_site()))
+                .collect()
         }
         Fields::Unit => panic!("Cannot derive Note trait on a unit struct"),
     };
 
-    dbg!(field_idents);
+    dbg!(&field_idents);
 
-    let gen = quote! {
+    let html_tag_regex = LitStr::new("<.*?>", Span::call_site());
+    let nbsp_html = LitStr::new("&nbsp;", Span::call_site());
+    let quote = LitStr::new("\"", Span::call_site());
+
+    quote! {
         impl Note for #name {
             fn remove_html(mut self) -> Self {
-                todo!()
+                #(self.#field_idents = __remove_html(&self.#field_idents);)*
+                self
             }
 
             fn to_line(self, separator: char) -> String {
-                todo!()
+                vec![
+                    #(self.#field_idents),*
+                ]
+                .join(&separator.to_string())
             }
 
             fn from_line(line: &str, separator: char) -> Self {
                 todo!()
             }
         }
-    };
-    gen.into()
+
+        fn __remove_html(word: &str) -> String {
+            let pattern = regex::Regex::new(#html_tag_regex).unwrap();
+            pattern
+                .replace_all(word, "")
+                .replace(#nbsp_html, "")
+                .replace(#quote, "")
+        }
+    }
 }
