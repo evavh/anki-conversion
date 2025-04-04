@@ -3,15 +3,9 @@ use std::io::Write;
 
 use parse::{extract_header, find_header_entry, parse_separator};
 
-pub use crate::minimal_pair_note::MinimalPairNote;
 pub use crate::parse::FieldInfo;
-pub use crate::simple_note::SimpleNote;
-pub use crate::spelling_note::SpellingNote;
 
-mod minimal_pair_note;
 mod parse;
-mod simple_note;
-mod spelling_note;
 
 pub trait Note {
     fn remove_html(self) -> Self;
