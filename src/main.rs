@@ -1,6 +1,4 @@
-use anki_conversion::{
-    parse_notes, save, MinimalPairNote, Note, SimpleNote, SpellingNote
-};
+use anki_conversion::{MinimalPairNote, Note, SimpleNote, SpellingNote};
 use regex::Regex;
 
 fn main() {
@@ -12,7 +10,7 @@ fn main() {
 
 fn convert_ipa_in_word() {
     let path = "/home/focus/downloads/Norsk__Pronunciation__Minimal pairs - IPA in word.txt";
-    let (notes, field_info) = parse_notes::<MinimalPairNote>(path);
+    let (notes, field_info) = MinimalPairNote::parse_txt(path);
     let notes: Vec<_> = notes
         .into_iter()
         .map(MinimalPairNote::move_ipas_from_words)
@@ -20,12 +18,12 @@ fn convert_ipa_in_word() {
         .collect();
 
     let new_path = "ipa_in_word_output.txt";
-    save(notes, new_path, field_info);
+    MinimalPairNote::save_to_txt(notes, new_path, field_info);
 }
 
 fn convert_frontback() {
     let path = "/home/focus/downloads/Norsk__Pronunciation__Minimal Pairs - frontback.txt";
-    let (simple_notes, mut field_info) = parse_notes::<SimpleNote>(path);
+    let (simple_notes, mut field_info) = SimpleNote::parse_txt(path);
 
     let pairs = simple_notes.chunks_exact(2);
     assert_eq!(pairs.remainder().len(), 0, "{:?}", pairs.remainder());
@@ -45,12 +43,12 @@ fn convert_frontback() {
     field_info.header = field_info
         .header
         .replace("#tags column:3", "#tags column:11");
-    save(notes, new_path, field_info);
+    MinimalPairNote::save_to_txt(notes, new_path, field_info);
 }
 
 fn deduplicate() {
     let path = "/home/focus/downloads/Norsk__Pronunciation__Minimal Pairs.txt";
-    let (notes, field_info) = parse_notes::<MinimalPairNote>(path);
+    let (notes, field_info) = MinimalPairNote::parse_txt(path);
 
     let n_total = notes.len();
     let n_duplicates = notes
@@ -89,13 +87,13 @@ fn deduplicate() {
     assert_eq!(deduplicated.len(), n_total - n_duplicates);
 
     let new_path = "deduplicated.txt";
-    save(deduplicated, new_path, field_info);
+    MinimalPairNote::save_to_txt(deduplicated, new_path, field_info);
 }
 
 fn convert_spellings() {
     let path =
         "/home/focus/downloads/Norsk__Pronunciation__Spellings and Sounds.txt";
-    let (notes, field_info) = parse_notes::<SpellingNote>(path);
+    let (notes, field_info) = SpellingNote::parse_txt(path);
     let notes: Vec<_> = notes
         .into_iter()
         .map(|mut note| {
@@ -112,5 +110,5 @@ fn convert_spellings() {
         .collect();
 
     let new_path = "cleaned_spellings.txt";
-    save(notes, new_path, field_info);
+    SpellingNote::save_to_txt(notes, new_path, field_info);
 }
