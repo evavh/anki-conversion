@@ -2,7 +2,7 @@ use std::fs;
 use std::io::Write;
 
 pub use crate::minimal_pair_note::MinimalPairNote;
-pub use crate::parse::{parse_notes, FieldInfo, ToLine};
+pub use crate::parse::{parse_notes, FieldInfo};
 pub use crate::simple_note::SimpleNote;
 pub use crate::spelling_note::SpellingNote;
 
@@ -25,7 +25,7 @@ pub fn remove_html(word: &str) -> String {
         .replace("\"", "")
 }
 
-pub fn save<T: ToLine>(notes: Vec<T>, new_path: &str, field_info: FieldInfo) {
+pub fn save<T: Note>(notes: Vec<T>, new_path: &str, field_info: FieldInfo) {
     let mut new_file = fs::OpenOptions::new()
         .append(true)
         .create(true)

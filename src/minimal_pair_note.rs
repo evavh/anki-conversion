@@ -1,11 +1,12 @@
-use crate::parse::{FromLine, ToLine};
-use crate::remove_html;
+use anki_conversion_derive::Note;
+
 use crate::simple_note::SimpleNote;
+use crate::Note;
 
 use std::fmt;
 use std::fmt::Debug;
 
-#[derive(Clone, Default)]
+#[derive(Clone, Default, Note)]
 pub struct MinimalPairNote {
     pub word1: String,
     pub audio1: String,
@@ -49,84 +50,6 @@ impl Debug for MinimalPairNote {
     }
 }
 
-// TODO: derive macro
-impl FromLine for MinimalPairNote {
-    fn from_line(line: &str, separator: char) -> Self {
-        let mut note = Self::default();
-        let mut fields = line.split(separator);
-
-        let Some(field) = fields.next() else {
-            return note;
-        };
-        note.word1 = field.to_string();
-        let Some(field) = fields.next() else {
-            return note;
-        };
-        note.audio1 = field.to_string();
-        let Some(field) = fields.next() else {
-            return note;
-        };
-        note.ipa1 = field.to_string();
-
-        let Some(field) = fields.next() else {
-            return note;
-        };
-        note.word2 = field.to_string();
-        let Some(field) = fields.next() else {
-            return note;
-        };
-        note.audio2 = field.to_string();
-        let Some(field) = fields.next() else {
-            return note;
-        };
-        note.ipa2 = field.to_string();
-
-        let Some(field) = fields.next() else {
-            return note;
-        };
-        note.word3 = field.to_string();
-        let Some(field) = fields.next() else {
-            return note;
-        };
-        note.audio3 = field.to_string();
-        let Some(field) = fields.next() else {
-            return note;
-        };
-        note.ipa3 = field.to_string();
-
-        let Some(field) = fields.next() else {
-            return note;
-        };
-        note.compare_word3 = field.to_string();
-        let Some(field) = fields.next() else {
-            return note;
-        };
-        note.tags = field.to_string();
-
-        note
-    }
-}
-
-// TODO: derive macro
-impl ToLine for MinimalPairNote {
-    fn to_line(self, separator: char) -> String {
-        vec![
-            self.word1,
-            self.audio1,
-            self.ipa1,
-            self.word2,
-            self.audio2,
-            self.ipa2,
-            self.word3,
-            self.audio3,
-            self.ipa3,
-            self.compare_word3,
-            self.tags,
-        ]
-        .join(&separator.to_string())
-    }
-}
-
 impl MinimalPairNote {
     pub fn from_simple_notes(
         simple_note1: &SimpleNote,
@@ -155,18 +78,6 @@ impl MinimalPairNote {
             self.word3 = word;
             self.ipa3 = ipa;
         }
-
-        self
-    }
-
-    // TODO: provide in trait
-    pub fn remove_html(mut self) -> Self {
-        self.word1 = remove_html(&self.word1);
-        self.ipa1 = remove_html(&self.ipa1);
-        self.word2 = remove_html(&self.word2);
-        self.ipa2 = remove_html(&self.ipa2);
-        self.word3 = remove_html(&self.word3);
-        self.ipa3 = remove_html(&self.ipa3);
 
         self
     }

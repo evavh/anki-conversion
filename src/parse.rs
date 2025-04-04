@@ -2,20 +2,14 @@ use std::fmt::Debug;
 use std::fs;
 use std::str::FromStr;
 
-pub trait FromLine {
-    fn from_line(line: &str, separator: char) -> Self;
-}
-
-pub trait ToLine {
-    fn to_line(self, separator: char) -> String;
-}
+use crate::Note;
 
 pub struct FieldInfo {
     pub separator: char,
     pub header: String,
 }
 
-pub fn parse_notes<T: FromLine>(path: &str) -> (Vec<T>, FieldInfo) {
+pub fn parse_notes<T: Note>(path: &str) -> (Vec<T>, FieldInfo) {
     let data = fs::read_to_string(path).unwrap();
     let header = extract_header(&data);
     let separator = find_header_entry(&data, "separator").unwrap();
