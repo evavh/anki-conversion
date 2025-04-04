@@ -1,6 +1,6 @@
-use proc_macro2::{Literal, Span};
-use quote::quote;
-use syn::{Data, Fields, Ident, LitStr, Type};
+use proc_macro2::Span;
+use quote::{quote, ToTokens};
+use syn::{Data, Fields, LitInt, LitStr, Type};
 
 #[cfg(test)]
 mod test;
@@ -46,7 +46,9 @@ fn impl_note_macro(ast: syn::DeriveInput) -> proc_macro2::TokenStream {
                     )
                 })
                 .map(|f| {
-                    f.ident.expect("Field of a named struct should have a name")
+                    f.ident
+                        .expect("Field of a named struct should have a name")
+                        .to_token_stream()
                 })
                 .collect()
         }
@@ -55,7 +57,10 @@ fn impl_note_macro(ast: syn::DeriveInput) -> proc_macro2::TokenStream {
             dbg!(n_fields);
             (0..n_fields)
                 .into_iter()
-                .map(|n| Ident::new(&n.to_string(), Span::call_site()))
+                .map(|n| {
+                    LitInt::new(&n.to_string(), Span::call_site())
+                        .to_token_stream()
+                })
                 .collect()
         }
         Fields::Unit => panic!("Cannot derive Note trait on a unit struct"),
@@ -70,7 +75,15 @@ fn impl_note_macro(ast: syn::DeriveInput) -> proc_macro2::TokenStream {
     quote! {
         impl Note for #name {
             fn remove_html(mut self) -> Self {
-                #(self.#field_idents = __remove_html(&self.#field_idents);)*
+                fn remove_html(word: &str) -> String {
+                    let pattern = regex::Regex::new(#html_tag_regex).unwrap();
+                    pattern
+                        .replace_all(word, "")
+                        .replace(#nbsp_html, "")
+                        .replace(#quote, "")
+                }
+
+                #(self.#field_idents = remove_html(&self.#field_idents);)*
                 self
             }
 
@@ -84,14 +97,6 @@ fn impl_note_macro(ast: syn::DeriveInput) -> proc_macro2::TokenStream {
             fn from_line(line: &str, separator: char) -> Self {
                 todo!()
             }
-        }
-
-        fn __remove_html(word: &str) -> String {
-            let pattern = regex::Regex::new(#html_tag_regex).unwrap();
-            pattern
-                .replace_all(word, "")
-                .replace(#nbsp_html, "")
-                .replace(#quote, "")
         }
     }
 }
