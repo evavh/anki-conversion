@@ -9,7 +9,6 @@ mod test;
 pub fn derive_note_fns(
     input: proc_macro::TokenStream,
 ) -> proc_macro::TokenStream {
-    // TODO: derive remove_html, from_line and to_line
     let ast = syn::parse(input).unwrap();
 
     impl_note_macro(ast).into()
@@ -54,7 +53,6 @@ fn impl_note_macro(ast: syn::DeriveInput) -> proc_macro2::TokenStream {
         }
         Fields::Unnamed(unnamed_fields) => {
             let n_fields = unnamed_fields.unnamed.len();
-            dbg!(n_fields);
             (0..n_fields)
                 .into_iter()
                 .map(|n| {
@@ -65,8 +63,6 @@ fn impl_note_macro(ast: syn::DeriveInput) -> proc_macro2::TokenStream {
         }
         Fields::Unit => panic!("Cannot derive Note trait on a unit struct"),
     };
-
-    dbg!(&field_idents);
 
     let html_tag_regex = LitStr::new("<.*?>", Span::call_site());
     let nbsp_html = LitStr::new("&nbsp;", Span::call_site());
@@ -95,7 +91,15 @@ fn impl_note_macro(ast: syn::DeriveInput) -> proc_macro2::TokenStream {
             }
 
             fn from_line(line: &str, separator: char) -> Self {
-                todo!()
+                let mut note = Self { #(#field_idents: String::new()),*};
+                let mut fields = line.split(separator);
+
+                #(let Some(field) = fields.next() else {
+                    return note;
+                };
+                note.#field_idents = field.to_string();)*
+
+                note
             }
         }
     }

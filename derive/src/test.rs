@@ -16,6 +16,7 @@ const EMPTY_STRUCT: &str = r"struct Empty {}";
 fn named_field_struct_compiles() {
     let ast = syn::parse_str(NAMED_FIELD_STRUCT).unwrap();
     let output = super::impl_note_macro(ast);
+    println!("{output}");
     assert!(syn::parse2::<ItemImpl>(output).is_ok());
 }
 
@@ -23,6 +24,7 @@ fn named_field_struct_compiles() {
 fn tuple_struct_compiles() {
     let ast = syn::parse_str(TUPLE_STRUCT).unwrap();
     let output = super::impl_note_macro(ast);
+    println!("{output}");
     assert!(syn::parse2::<ItemImpl>(output).is_ok());
 }
 
