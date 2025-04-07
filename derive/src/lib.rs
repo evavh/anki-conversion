@@ -69,10 +69,12 @@ fn impl_note_macro(ast: syn::DeriveInput) -> proc_macro2::TokenStream {
     let quote = LitStr::new("\"", Span::call_site());
 
     quote! {
-        impl Note for #name {
+        impl ::anki_conversion::Note for #name {
             fn remove_html(mut self) -> Self {
-                fn remove_html(word: &str) -> String {
-                    let pattern = regex::Regex::new(#html_tag_regex).unwrap();
+                fn remove_html(
+                    word: &::std::primitive::str
+                ) -> ::std::string::String {
+                    let pattern = ::regex::Regex::new(#html_tag_regex).unwrap();
                     pattern
                         .replace_all(word, "")
                         .replace(#nbsp_html, "")
@@ -83,15 +85,20 @@ fn impl_note_macro(ast: syn::DeriveInput) -> proc_macro2::TokenStream {
                 self
             }
 
-            fn to_line(self, separator: char) -> String {
-                vec![
-                    #(self.#field_idents),*
-                ]
-                .join(&separator.to_string())
+            fn to_line(
+                self,
+                separator: ::std::primitive::char
+            ) -> ::std::string::String {
+                vec![#(self.#field_idents),*].join(&separator.to_string())
             }
 
-            fn from_line(line: &str, separator: char) -> Self {
-                let mut note = Self { #(#field_idents: String::new()),*};
+            fn from_line(
+                line: &::std::primitive::str,
+                separator: ::std::primitive::char
+            ) -> Self {
+                let mut note = Self {
+                    #(#field_idents: ::std::string::String::new()),*
+                };
                 let mut fields = line.split(separator);
 
                 #(let Some(field) = fields.next() else {
