@@ -1,22 +1,16 @@
-use std::fmt::Debug;
-use std::str::FromStr;
-
 pub struct FieldInfo {
     pub separator: char,
     pub header: String,
 }
 
-pub(crate) fn extract_header(data: &String) -> String {
+pub(crate) fn extract_header(data: &str) -> String {
     data.lines()
-        .take_while(|line| line.starts_with("#"))
+        .take_while(|line| line.starts_with('#'))
         .map(|line| line.to_string() + "\n")
         .collect()
 }
 
-pub(crate) fn find_header_entry<T: FromStr>(data: &str, key: &str) -> Option<T>
-where
-    <T as FromStr>::Err: Debug,
-{
+pub(crate) fn find_header_entry(data: &str, key: &str) -> Option<String> {
     let pattern = format!("#{key}:");
     Some(
         data.lines()
@@ -26,7 +20,7 @@ where
     )
 }
 
-pub(crate) fn parse_separator(value: String) -> char {
+pub(crate) fn parse_separator(value: &str) -> char {
     if value.len() == 1 {
         return value.chars().next().unwrap();
     }
