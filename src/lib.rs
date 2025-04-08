@@ -7,17 +7,14 @@ pub use crate::parse::FieldInfo;
 
 mod parse;
 
-pub trait Note {
+pub trait Note: Sized {
     #[must_use]
     fn remove_html(self) -> Self;
     fn to_line(self, separator: char) -> String;
-    fn from_line(line: &str, separator: char) -> Self;
+    fn from_line(line: &str, separator: char) -> Result<Self, Error>;
 
     #[must_use]
-    fn parse_txt(path: &str) -> (Vec<Self>, FieldInfo)
-    where
-        Self: Sized,
-    {
+    fn parse_txt(path: &str) -> Result<(Vec<Self>, FieldInfo), Error> {
         let data = fs::read_to_string(path).unwrap();
         let header = extract_header(&data);
         let separator = find_header_entry(&data, "separator").unwrap();
@@ -29,10 +26,10 @@ pub trait Note {
         lines.sort_unstable();
         let notes = lines
             .into_iter()
-            .map(|line| Self::from_line(line, separator))
-            .collect();
+            .map(|line| Ok(Self::from_line(line, separator)?))
+            .collect::<Result<Vec<_>, Error>>()?;
 
-        (notes, FieldInfo { separator, header })
+        Ok((notes, FieldInfo { separator, header }))
     }
 
     fn save_to_txt(notes: Vec<Self>, new_path: &str, field_info: FieldInfo)
@@ -50,6 +47,14 @@ pub trait Note {
             writeln!(new_file, "{}", note.to_line(separator)).unwrap();
         }
     }
+}
+
+#[derive(Debug, thiserror::Error)]
+pub enum Error {
+    #[error("Number of struct fields > fields per line in txt")]
+    TooManyStructFields,
+    #[error("Number of struct fields < fields per line in txt")]
+    NotEnoughStructFields,
 }
 
 #[allow(clippy::missing_panics_doc)]

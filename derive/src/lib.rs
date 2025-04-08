@@ -95,18 +95,22 @@ fn impl_note_macro(ast: syn::DeriveInput) -> proc_macro2::TokenStream {
             fn from_line(
                 line: &::std::primitive::str,
                 separator: ::std::primitive::char
-            ) -> Self {
+            ) -> ::std::result::Result<Self, ::anki_conversion::Error> {
+                use ::anki_conversion::Error;
                 let mut note = Self {
                     #(#field_idents: ::std::string::String::new()),*
                 };
                 let mut fields = line.split(separator);
 
                 #(let Some(field) = fields.next() else {
-                    return note;
+                    return Err(Error::TooManyStructFields);
                 };
                 note.#field_idents = field.to_string();)*
+                if fields.next().is_some() {
+                    return Err(Error::NotEnoughStructFields);
+                }
 
-                note
+                Ok(note)
             }
         }
     }
