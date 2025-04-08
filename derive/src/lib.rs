@@ -9,7 +9,7 @@ mod test;
 pub fn derive_note_fns(
     input: proc_macro::TokenStream,
 ) -> proc_macro::TokenStream {
-    let ast = syn::parse(input).unwrap();
+    let ast = syn::parse(input).expect("Derive macro input should be parsable");
 
     impl_note_macro(ast).into()
 }
@@ -74,7 +74,8 @@ fn impl_note_macro(ast: syn::DeriveInput) -> proc_macro2::TokenStream {
                 fn remove_html(
                     word: &::std::primitive::str
                 ) -> ::std::string::String {
-                    let pattern = ::regex::Regex::new(#html_tag_regex).unwrap();
+                    let pattern = ::regex::Regex::new(#html_tag_regex)
+                        .expect("Valid regex");
                     pattern
                         .replace_all(word, "")
                         .replace(#nbsp_html, "")

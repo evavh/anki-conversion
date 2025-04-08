@@ -10,19 +10,21 @@ pub(crate) fn extract_header(data: &str) -> String {
         .collect()
 }
 
-pub(crate) fn find_header_entry(data: &str, key: &str) -> Option<String> {
+pub(crate) fn find_header_entry(
+    data: &str,
+    key: &str,
+) -> Result<String, crate::Error> {
     let pattern = format!("#{key}:");
-    Some(
-        data.lines()
-            .find_map(|line| line.strip_prefix(&pattern))?
-            .parse()
-            .unwrap(),
-    )
+    Ok(data
+        .lines()
+        .find_map(|line| line.strip_prefix(&pattern))
+        .ok_or(crate::Error::HeaderEntryNotFound(key.to_string()))?
+        .to_string())
 }
 
 pub(crate) fn parse_separator(value: &str) -> char {
     if value.len() == 1 {
-        return value.chars().next().unwrap();
+        return value.chars().next().expect("Length should be 1 (checked)");
     }
 
     match value.to_lowercase().as_str() {
