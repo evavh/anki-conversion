@@ -25,7 +25,7 @@ fn type_is_string(ty: &Type) -> bool {
 }
 
 fn impl_note_macro(ast: syn::DeriveInput) -> proc_macro2::TokenStream {
-    let name = &ast.ident;
+    let struct_name = &ast.ident;
     let Data::Struct(struct_data) = ast.data else {
         panic!("Cannot derive Note trait on an enum or union")
     };
@@ -68,51 +68,85 @@ fn impl_note_macro(ast: syn::DeriveInput) -> proc_macro2::TokenStream {
     let nbsp_html = LitStr::new("&nbsp;", Span::call_site());
     let quote = LitStr::new("\"", Span::call_site());
 
-    quote! {
-        impl ::anki_conversion::Note for #name {
-            fn remove_html(mut self) -> Self {
-                fn remove_html(
-                    word: &::std::primitive::str
-                ) -> ::std::string::String {
-                    let pattern = ::regex::Regex::new(#html_tag_regex)
-                        .expect("Valid regex");
-                    pattern
-                        .replace_all(word, "")
-                        .replace(#nbsp_html, "")
-                        .replace(#quote, "")
-                }
-
-                #(self.#field_idents = remove_html(&self.#field_idents);)*
-                self
-            }
-
-            fn to_line(
-                self,
-                separator: ::std::primitive::char
+    let always = quote! {
+        fn remove_html(mut self) -> Self {
+            fn remove_html(
+                word: &::std::primitive::str
             ) -> ::std::string::String {
-                vec![#(self.#field_idents),*].join(&separator.to_string())
+                let pattern = ::regex::Regex::new(#html_tag_regex)
+                    .expect("Valid regex");
+                pattern
+                    .replace_all(word, "")
+                    .replace(#nbsp_html, "")
+                    .replace(#quote, "")
             }
 
-            fn from_line(
-                line: &::std::primitive::str,
-                separator: ::std::primitive::char
-            ) -> ::std::result::Result<Self, ::anki_conversion::Error> {
-                use ::anki_conversion::Error;
-                let mut note = Self {
-                    #(#field_idents: ::std::string::String::new()),*
-                };
-                let mut fields = line.split(separator);
+            #(self.#field_idents = remove_html(&self.#field_idents);)*
+            self
+        }
 
-                #(let Some(field) = fields.next() else {
-                    return Err(Error::TooManyStructFields);
-                };
-                note.#field_idents = field.to_string();)*
-                if fields.next().is_some() {
-                    return Err(Error::NotEnoughStructFields);
-                }
+        fn into_line(
+            self,
+            separator: ::std::primitive::char
+        ) -> ::std::string::String {
+            vec![#(self.#field_idents),*].join(&separator.to_string())
+        }
 
-                Ok(note)
+        fn from_line(
+            line: &::std::primitive::str,
+            separator: ::std::primitive::char
+        ) -> ::std::result::Result<Self, ::anki_conversion::Error> {
+            use ::anki_conversion::Error;
+            let mut note = Self {
+                #(#field_idents: ::std::string::String::new()),*
+            };
+            let mut fields = line.split(separator);
+
+            #(let Some(field) = fields.next() else {
+                return Err(Error::TooManyStructFields);
+            };
+            note.#field_idents = field.to_string();)*
+            if fields.next().is_some() {
+                return Err(Error::NotEnoughStructFields);
             }
+
+            Ok(note)
+        }
+    };
+
+    #[cfg(feature = "genanki-rs")]
+    let optional = quote! {
+        fn into_genanki(
+            self,
+            model_id: i64
+        ) -> ::std::result::Result<
+            ::anki_conversion::genanki_rs::Note,
+            ::anki_conversion::genanki_rs::Error,
+        > {
+            let model_fields = vec![
+                #(::anki_conversion::genanki_rs::Field::new(stringify!(#field_idents))),*
+            ];
+            let model = ::anki_conversion::genanki_rs::Model::new(
+                model_id,
+                stringify!(#struct_name),
+                model_fields,
+                vec![]
+            );
+
+            ::anki_conversion::genanki_rs::Note::new(
+                model,
+                vec![#(&self.#field_idents),*]
+            )
+        }
+    };
+
+    #[cfg(not(feature = "genanki-rs"))]
+    let optional = quote! {};
+
+    quote! {
+        impl ::anki_conversion::Note for #struct_name {
+            #always
+            #optional
         }
     }
 }

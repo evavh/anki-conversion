@@ -5,5 +5,8 @@ edition = "2021"
 
 [dependencies]
 regex = "1.11.1"
-anki-conversion-derive = { path = "derive" }
 thiserror = "2.0.12"
+genanki-rs = { version = "0.4.0", optional = true }
+
+[features]
+genanki-rs = ["dep:genanki-rs"]
