@@ -64,6 +64,8 @@ fn impl_note_macro(ast: syn::DeriveInput) -> proc_macro2::TokenStream {
         Fields::Unit => panic!("Cannot derive Note trait on a unit struct"),
     };
 
+    let n_fields_struct = field_idents.len();
+
     let html_tag_regex = LitStr::new("<.*?>", Span::call_site());
     let nbsp_html = LitStr::new("&nbsp;", Span::call_site());
     let quote = LitStr::new("\"", Span::call_site());
@@ -101,13 +103,18 @@ fn impl_note_macro(ast: syn::DeriveInput) -> proc_macro2::TokenStream {
                 #(#field_idents: ::std::string::String::new()),*
             };
             let mut fields = line.split(separator);
+            let n_fields_file = fields.clone().count();
 
             #(let Some(field) = fields.next() else {
-                return Err(Error::TooManyStructFields);
+                return Err(
+                    Error::TooManyStructFields(#n_fields_struct, n_fields_file)
+                );
             };
             note.#field_idents = field.to_string();)*
             if fields.next().is_some() {
-                return Err(Error::NotEnoughStructFields);
+                return Err(
+                    Error::NotEnoughStructFields(#n_fields_struct, n_fields_file)
+                );
             }
 
             Ok(note)
@@ -124,7 +131,10 @@ fn impl_note_macro(ast: syn::DeriveInput) -> proc_macro2::TokenStream {
             ::anki_conversion::genanki_rs::Error,
         > {
             let model_fields = vec![
-                #(::anki_conversion::genanki_rs::Field::new(stringify!(#field_idents))),*
+                #(::anki_conversion::genanki_rs::Field::new(
+                        stringify!(#field_idents)
+                    )
+                ),*
             ];
             let model = ::anki_conversion::genanki_rs::Model::new(
                 model_id,

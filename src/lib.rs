@@ -13,10 +13,10 @@ pub enum Error {
     Io(#[from] std::io::Error),
     #[error("Header entry not found: {0}")]
     HeaderEntryNotFound(String),
-    #[error("Number of struct fields < fields per line in txt")]
-    NotEnoughStructFields,
-    #[error("Number of struct fields > fields per line in txt")]
-    TooManyStructFields,
+    #[error("Number of struct fields ({0}) < fields per line in txt ({1})")]
+    NotEnoughStructFields(usize, usize),
+    #[error("Number of struct fields ({0}) > fields per line in txt ({1})")]
+    TooManyStructFields(usize, usize),
 }
 
 #[allow(clippy::missing_panics_doc)]
