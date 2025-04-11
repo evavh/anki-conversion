@@ -1,8 +1,3 @@
-pub struct FieldInfo {
-    pub separator: char,
-    pub header: String,
-}
-
 pub(crate) fn extract_header(data: &str) -> String {
     data.lines()
         .take_while(|line| line.starts_with('#'))

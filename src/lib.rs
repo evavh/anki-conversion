@@ -1,8 +1,9 @@
+pub use file::{File, Header};
 #[cfg(feature = "genanki-rs")]
 pub use genanki_rs;
 pub use note::Note;
-pub use parse::FieldInfo;
 
+mod file;
 mod note;
 mod parse;
 
